@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as https from 'https';
 import { BountyShieldScanner, BountyScanTarget } from './core/scanner';
 import { LRUCache } from './core/lruCache';
+import { AuthGuard } from './core/authGuard';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,12 +25,19 @@ const scanCache = new LRUCache<any>(1000, 60 * 60 * 1000);
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', engine: 'BountyShield 2.0-Hardened', cachedEntries: scanCache.size(), uptime: process.uptime() });
+  res.json({ 
+    status: 'ok', 
+    engine: 'BountyShield 2.0-Commercial', 
+    cachedEntries: scanCache.size(),
+    polarCheckoutUrl: 'https://buy.polar.sh/polar_cl_VRzIQO3ntnXCuc29kpklptOmhL9opNgRyJ1R3Jeodd',
+    uptime: process.uptime() 
+  });
 });
 
-// REST API: POST /api/scan
-app.post('/api/scan', async (req, res) => {
+// REST API: POST /api/scan with AuthGuard (Free vs Pro)
+app.post('/api/scan', AuthGuard.authenticateRequest, async (req, res) => {
   const { url, githubToken } = req.body;
+  const tierInfo = (req as any).tierInfo;
 
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ success: false, error: 'Valid GitHub issue URL required.' });
@@ -39,7 +47,7 @@ app.post('/api/scan', async (req, res) => {
   const cacheKey = url.toLowerCase().trim();
   const cached = scanCache.get(cacheKey);
   if (cached) {
-    return res.json({ success: true, report: cached, cached: true });
+    return res.json({ success: true, report: cached, cached: true, tierInfo });
   }
 
   const match = url.match(/https:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)\/issues\/(\d+)/);
@@ -72,7 +80,7 @@ app.post('/api/scan', async (req, res) => {
     const report = await BountyShieldScanner.scan(scanTarget);
     scanCache.set(cacheKey, report);
 
-    return res.json({ success: true, report, cached: false });
+    return res.json({ success: true, report, cached: false, tierInfo });
 
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
