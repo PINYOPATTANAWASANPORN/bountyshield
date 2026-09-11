@@ -2,11 +2,11 @@
 
 > Enterprise-grade Anti-Honeypot, Prompt-Trap & Bounty Scam Defense Engine for Developers and AI Coding Agents.
 
-[![BountyShield Pro](https://img.shields.io/badge/Subscribe-BountyShield%20Pro%20($9/mo)-0052FF?style=for-the-badge&logo=shield)](https://buy.polar.sh/polar_cl_VRzlQO3ntnXCCuc29kpkIptOmhL9opNgRyJ1R3Jeodd)
-[![Payments by Polar](https://img.shields.io/badge/Payments%20by-Polar.sh%20%26%20Stripe-blue?style=for-the-badge)](https://polar.sh/bountyshield)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
+[![BountyShield Pro](https://img.shields.io/badge/Subscribe-BountyShield%20Pro%20%249%2Fmo-0052FF?style=for-the-badge&logo=shield)](https://buy.polar.sh/polar_cl_VRzlQO3ntnXCCuc29kpkIptOmhL9opNgRyJ1R3Jeodd)
+[![Payments by Polar](https://img.shields.io/badge/Payments%20by-Polar.sh%20%26%20Stripe-6366f1?style=for-the-badge)](https://polar.sh/bountyshield)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178c6.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-339933.svg?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 
 ---
 
