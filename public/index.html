@@ -392,6 +392,9 @@
             <p id="recommendationText" style="color: var(--danger); font-weight: 600;">⛔ REJECT AND AVOID (High Scam / Default Risk)</p>
           </div>
         </div>
+        <button class="btn-scan" style="padding: 8px 16px; font-size: 0.85rem; background: rgba(255,255,255,0.08); border: 1px solid var(--border);" onclick="copyMarkdownVerdict()">
+          📋 Copy Report (Markdown)
+        </button>
       </div>
 
       <div class="grid-2">
@@ -471,7 +474,29 @@
       }
     }
 
+    let currentReport = null;
+
+    function copyMarkdownVerdict() {
+      if (!currentReport) return;
+      const md = `### 🛡️ BountyShield 2.0 Security Audit Report
+**Target:** ${currentReport.targetUrl}
+**Risk Score:** ${currentReport.riskScore}/100 [${currentReport.verdict}]
+**Verdict:** ${currentReport.recommendation}
+
+- **Escrow Backing:** ${currentReport.escrow.isVerified ? `✔ ${currentReport.escrow.platform} (${currentReport.escrow.amount})` : `✖ NONE (${currentReport.escrow.details})`}
+- **Upstream Provenance:** ${currentReport.upstream.hasUpstreamReference ? (currentReport.upstream.isUpstreamValid ? '✔ Valid' : `✖ Failed: ${currentReport.upstream.reason}`) : 'Native Issue'}
+- **Prompt Harvester:** ${currentReport.promptTrap.isTrapDetected ? `✖ TRAP DETECTED [${currentReport.promptTrap.trapSeverity}]` : '✔ Clean'}
+- **Cloaking/Entropy:** ${currentReport.decloak.hasHiddenCharacters ? '✖ Obfuscation Detected' : '✔ Clean'}
+
+*Audited by [BountyShield Sentinel](https://github.com/PINYOPATTANAWASANPORN/bountyshield)*`;
+
+      navigator.clipboard.writeText(md).then(() => {
+        alert('Copied Markdown Report to clipboard! Ready to paste into GitHub comments.');
+      });
+    }
+
     function renderReport(report) {
+      currentReport = report;
       const resultArea = document.getElementById('resultArea');
       const scoreCircle = document.getElementById('scoreCircle');
       const scoreNum = document.getElementById('scoreNum');
