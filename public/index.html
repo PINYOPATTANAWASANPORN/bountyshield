@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BountyShield 2.0 // Anti-Honeypot & Prompt-Trap Sentinel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --panel-bg: rgba(18, 24, 38, 0.75);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-focus: #3b82f6;
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.18) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.1) 0%, transparent 40%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 880px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #818cf8;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      margin-bottom: 24px;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 12px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: rgba(10, 15, 26, 0.8);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: var(--font-mono);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    button.btn-scan {
+      background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    button.btn-scan:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    button.btn-scan:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .preset-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .preset-label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .preset-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    /* Result Section */
+    #resultArea {
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .score-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .score-circle {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      border: 3px solid;
+    }
+
+    .score-circle .num {
+      font-size: 1.4rem;
+      line-height: 1;
+    }
+
+    .score-circle .label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .verdict-info h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .verdict-info p {
+      font-size: 0.9rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 640px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+      .search-box {
+        flex-direction: column;
+      }
+    }
+
+    .metric-card {
+      background: rgba(10, 15, 26, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .metric-card h4 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .metric-status {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .metric-detail {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .redflags-box {
+      background: var(--danger-bg);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .redflags-box h4 {
+      color: #f87171;
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .redflags-box ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    .redflags-box li {
+      font-size: 0.88rem;
+      color: #fca5a5;
+      margin-bottom: 6px;
+      position: relative;
+      padding-left: 18px;
+      line-height: 1.4;
+    }
+
+    .redflags-box li::before {
+      content: "•";
+      position: absolute;
+      left: 6px;
+      color: #ef4444;
+      font-weight: bold;
+    }
+
+    .loading-spinner {
+      display: none;
+      text-align: center;
+      padding: 30px 0;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge-pill">🛡️ BOUNTYSHIELD 2.0 // ACTIVE SENTINEL</div>
+      <h1>Pre-Flight Bounty Auditor</h1>
+      <p class="subtitle">Real-time anti-honeypot, prompt injection detector, and financial escrow validator for developers & AI coding agents.</p>
+    </header>
+
+    <div class="card">
+      <div class="search-box">
+        <input type="text" id="targetUrl" placeholder="https://github.com/owner/repo/issues/123" value="https://github.com/zhangjiayang6835-cyber/bounty-plaza/issues/1307">
+        <button class="btn-scan" id="btnScan" onclick="startScan()">
+          <span>Audit Target</span>
+        </button>
+      </div>
+
+      <div class="preset-pills">
+        <span class="preset-label">Test Fixtures:</span>
+        <button class="preset-btn" onclick="setPreset('https://github.com/zhangjiayang6835-cyber/bounty-plaza/issues/1307')">🚨 Synthetic Clone Farm (Scam Control)</button>
+        <button class="preset-btn" onclick="setPreset('https://github.com/ClankerNation/OpenAgents/issues/27')">⚠️ Prompt Harvester Trap</button>
+        <button class="preset-btn" onclick="setPreset('https://github.com/organicmaps/organicmaps/issues/10199')">✅ Genuine Polar Escrow</button>
+      </div>
+    </div>
+
+    <div class="loading-spinner" id="loadingArea">
+      <div class="spinner"></div>
+      <p style="color: var(--text-muted); font-size: 0.9rem;">Connecting to GitHub API & running 4-Stage Security Pipeline...</p>
+    </div>
+
+    <div id="resultArea" class="card">
+      <div class="result-header">
+        <div class="score-container">
+          <div class="score-circle" id="scoreCircle">
+            <span class="num" id="scoreNum">100</span>
+            <span class="label">RISK</span>
+          </div>
+          <div class="verdict-info">
+            <h3 id="verdictText">CRITICAL TRAP</h3>
+            <p id="recommendationText" style="color: var(--danger); font-weight: 600;">⛔ REJECT AND AVOID (High Scam / Default Risk)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- 1. Escrow -->
+        <div class="metric-card">
+          <h4>💰 Financial Escrow</h4>
+          <div class="metric-status" id="escrowStatus">NONE DETECTED</div>
+          <div class="metric-detail" id="escrowDetail">Zero verifiable escrow backing on Polar, Algora, or Gitcoin.</div>
+        </div>
+
+        <!-- 2. Upstream -->
+        <div class="metric-card">
+          <h4>🔗 Upstream Provenance</h4>
+          <div class="metric-status" id="upstreamStatus">FAILED (HTTP 404)</div>
+          <div class="metric-detail" id="upstreamDetail">Target issue does not exist in upstream repo. Clone farm indicator.</div>
+        </div>
+
+        <!-- 3. Prompt Trap -->
+        <div class="metric-card">
+          <h4>🪤 Adversarial Prompt Trap</h4>
+          <div class="metric-status" id="trapStatus">CLEAN</div>
+          <div class="metric-detail" id="trapDetail">No prompt exfiltration or system directive hijacking detected.</div>
+        </div>
+
+        <!-- 4. Decloaker -->
+        <div class="metric-card">
+          <h4>🕵️ Obfuscation & Cloaking</h4>
+          <div class="metric-status" id="decloakStatus">CLEAN</div>
+          <div class="metric-detail" id="decloakDetail">No zero-width characters or malicious base64 payloads.</div>
+        </div>
+      </div>
+
+      <div class="redflags-box" id="redFlagsBox">
+        <h4>🚨 Detected Structural Red Flags</h4>
+        <ul id="redFlagsList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setPreset(url) {
+      document.getElementById('targetUrl').value = url;
+      startScan();
+    }
+
+    async function startScan() {
+      const urlInput = document.getElementById('targetUrl').value.trim();
+      if (!urlInput) return;
+
+      const btnScan = document.getElementById('btnScan');
+      const loadingArea = document.getElementById('loadingArea');
+      const resultArea = document.getElementById('resultArea');
+
+      btnScan.disabled = true;
+      loadingArea.style.display = 'block';
+      resultArea.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: urlInput })
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          alert('Error: ' + data.error);
+          return;
+        }
+
+        renderReport(data.report);
+      } catch (err) {
+        alert('Failed to connect to scanner API: ' + err.message);
+      } finally {
+        btnScan.disabled = false;
+        loadingArea.style.display = 'none';
+      }
+    }
+
+    function renderReport(report) {
+      const resultArea = document.getElementById('resultArea');
+      const scoreCircle = document.getElementById('scoreCircle');
+      const scoreNum = document.getElementById('scoreNum');
+      const verdictText = document.getElementById('verdictText');
+      const recommendationText = document.getElementById('recommendationText');
+
+      scoreNum.innerText = report.riskScore;
+
+      // Color coding based on risk score
+      if (report.riskScore >= 75) {
+        scoreCircle.style.borderColor = 'var(--danger)';
+        scoreCircle.style.color = 'var(--danger)';
+        scoreCircle.style.backgroundColor = 'var(--danger-bg)';
+        verdictText.innerText = 'CRITICAL TRAP';
+        verdictText.style.color = 'var(--danger)';
+        recommendationText.innerText = '⛔ REJECT AND AVOID (Zero-payout or adversarial exploitation risk)';
+        recommendationText.style.color = 'var(--danger)';
+      } else if (report.riskScore >= 40) {
+        scoreCircle.style.borderColor = 'var(--warning)';
+        scoreCircle.style.color = 'var(--warning)';
+        scoreCircle.style.backgroundColor = 'var(--warning-bg)';
+        verdictText.innerText = 'HIGH RISK / CAUTION';
+        verdictText.style.color = 'var(--warning)';
+        recommendationText.innerText = '⚠️ MANUAL AUDIT REQUIRED (Proceed only with verified milestones)';
+        recommendationText.style.color = 'var(--warning)';
+      } else {
+        scoreCircle.style.borderColor = 'var(--success)';
+        scoreCircle.style.color = 'var(--success)';
+        scoreCircle.style.backgroundColor = 'var(--success-bg)';
+        verdictText.innerText = 'SAFE & VERIFIED';
+        verdictText.style.color = 'var(--success)';
+        recommendationText.innerText = '✅ PROCEED SAFELY (Legitimate escrow backing detected)';
+        recommendationText.style.color = 'var(--success)';
+      }
+
+      // 1. Escrow
+      document.getElementById('escrowStatus').innerText = report.escrow.isVerified 
+        ? `VERIFIED: ${report.escrow.platform} (${report.escrow.amount || 'Funded'})`
+        : 'UNVERIFIED / NO ESCROW';
+      document.getElementById('escrowStatus').style.color = report.escrow.isVerified ? 'var(--success)' : 'var(--danger)';
+      document.getElementById('escrowDetail').innerText = report.escrow.details;
+
+      // 2. Upstream
+      if (report.upstream.hasUpstreamReference) {
+        document.getElementById('upstreamStatus').innerText = report.upstream.isUpstreamValid ? 'VERIFIED (HTTP 200)' : 'FAILED (HTTP 404 / DEFECT)';
+        document.getElementById('upstreamStatus').style.color = report.upstream.isUpstreamValid ? 'var(--success)' : 'var(--danger)';
+        document.getElementById('upstreamDetail').innerText = report.upstream.reason || 'Referenced upstream repository checked.';
+      } else {
+        document.getElementById('upstreamStatus').innerText = 'NATIVE ISSUE';
+        document.getElementById('upstreamStatus').style.color = 'var(--text-muted)';
+        document.getElementById('upstreamDetail').innerText = 'No external clone or upstream source claimed.';
+      }
+
+      // 3. Prompt Trap
+      document.getElementById('trapStatus').innerText = report.promptTrap.isTrapDetected 
+        ? `TRAP DETECTED [${report.promptTrap.trapSeverity}]`
+        : 'CLEAN (NO INJECTIONS)';
+      document.getElementById('trapStatus').style.color = report.promptTrap.isTrapDetected ? 'var(--danger)' : 'var(--success)';
+      document.getElementById('trapDetail').innerText = report.promptTrap.isTrapDetected 
+        ? report.promptTrap.findings.join('; ')
+        : 'Zero directive overrides or credentials harvesters found.';
+
+      // 4. Obfuscation
+      document.getElementById('decloakStatus').innerText = report.decloak.hasHiddenCharacters || report.decloak.detectedObfuscations.length > 0
+        ? 'OBFUSCATION FLAGGED'
+        : 'CLEAN';
+      document.getElementById('decloakStatus').style.color = report.decloak.hasHiddenCharacters ? 'var(--danger)' : 'var(--success)';
+      document.getElementById('decloakDetail').innerText = `Entropy: ${report.decloak.entropyScore.toFixed(2)} | ` + (report.decloak.detectedObfuscations.join(', ') || 'Normal plaintext structure.');
+
+      // Red Flags List
+      const redFlagsBox = document.getElementById('redFlagsBox');
+      const redFlagsList = document.getElementById('redFlagsList');
+      redFlagsList.innerHTML = '';
+
+      if (report.riskFactors && report.riskFactors.length > 0) {
+        redFlagsBox.style.display = 'block';
+        report.riskFactors.forEach(rf => {
+          const li = document.createElement('li');
+          li.innerText = rf;
+          redFlagsList.appendChild(li);
+        });
+      } else {
+        redFlagsBox.style.display = 'none';
+      }
+
+      resultArea.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
