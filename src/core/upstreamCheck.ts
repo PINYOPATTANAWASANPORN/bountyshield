@@ -18,15 +18,32 @@ export class UpstreamVerifier {
   // Matches GitHub issue/PR URLs: https://github.com/owner/repo/issues/123
   private static readonly GITHUB_ISSUE_REGEX = /https:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)\/(issues|pull)\/(\d+)/;
 
+  // Shortener domains often used to conceal target 404 links or phishing sites
+  private static readonly SHORTENER_REGEX = /https?:\/\/(bit\.ly|tinyurl\.com|t\.co|goo\.gl|is\.gd|cutt\.ly)\/[a-zA-Z0-9_-]+/g;
+
   /**
-   * Extracts and verifies whether upstream references actually exist
+   * Extracts and verifies whether upstream references actually exist,
+   * unmasking shortened URLs if present.
    */
   public static async verifyUpstreamReference(body: string, currentUrl?: string): Promise<UpstreamAuditResult> {
-    const match = body.match(this.GITHUB_ISSUE_REGEX);
+    let targetText = body;
+
+    // 1. Expand shortened URLs if present
+    const shortenerMatches = body.match(this.SHORTENER_REGEX);
+    if (shortenerMatches && shortenerMatches.length > 0) {
+      for (const shortUrl of shortenerMatches) {
+        const expanded = await this.resolveRedirect(shortUrl);
+        if (expanded) {
+          targetText += '\n' + expanded;
+        }
+      }
+    }
+
+    const match = targetText.match(this.GITHUB_ISSUE_REGEX);
     if (!match) {
       return {
         hasUpstreamReference: false,
-        isUpstreamValid: true // No upstream claimed, valid by default
+        isUpstreamValid: true
       };
     }
 
@@ -60,6 +77,17 @@ export class UpstreamVerifier {
         };
       }
 
+      if (res.status === 403) {
+        // Unauthenticated rate limit reached
+        return {
+          hasUpstreamReference: true,
+          upstreamUrl: targetUrl,
+          isUpstreamValid: false,
+          statusCode: 403,
+          reason: `Upstream GitHub API rate-limited (403). Could not verify existence of external reference.`
+        };
+      }
+
       if (res.status === 200) {
         return {
           hasUpstreamReference: true,
@@ -85,6 +113,31 @@ export class UpstreamVerifier {
         reason: `Failed to connect to upstream GitHub API: ${err.message}`
       };
     }
+  }
+
+  private static resolveRedirect(url: string): Promise<string | null> {
+    return new Promise((resolve) => {
+      try {
+        const parsed = new URL(url);
+        const req = https.request({
+          hostname: parsed.hostname,
+          path: parsed.pathname + parsed.search,
+          method: 'HEAD',
+          headers: { 'User-Agent': 'BountyShield-Unshortener-2.0' }
+        }, (res) => {
+          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            resolve(res.headers.location);
+          } else {
+            resolve(null);
+          }
+        });
+        req.on('error', () => resolve(null));
+        req.setTimeout(4000, () => { req.destroy(); resolve(null); });
+        req.end();
+      } catch {
+        resolve(null);
+      }
+    });
   }
 
   private static fetchGithubApi(url: string): Promise<{ status: number; data: any }> {

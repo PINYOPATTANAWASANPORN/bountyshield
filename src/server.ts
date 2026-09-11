@@ -10,6 +10,7 @@ import cors from 'cors';
 import * as path from 'path';
 import * as https from 'https';
 import { BountyShieldScanner, BountyScanTarget } from './core/scanner';
+import { LRUCache } from './core/lruCache';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,17 +19,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-// LRU In-Memory Cache (TTL: 1 Hour)
-interface CacheEntry {
-  report: any;
-  timestamp: number;
-}
-const scanCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+// Hardened LRU In-Memory Cache (Cap: 1000 items, TTL: 1 Hour)
+const scanCache = new LRUCache<any>(1000, 60 * 60 * 1000);
 
 // Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', engine: 'BountyShield 2.0', cachedEntries: scanCache.size, uptime: process.uptime() });
+  res.json({ status: 'ok', engine: 'BountyShield 2.0-Hardened', cachedEntries: scanCache.size(), uptime: process.uptime() });
 });
 
 // REST API: POST /api/scan
@@ -39,11 +35,11 @@ app.post('/api/scan', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Valid GitHub issue URL required.' });
   }
 
-  // Check cache first
+  // Check LRU cache first
   const cacheKey = url.toLowerCase().trim();
   const cached = scanCache.get(cacheKey);
-  if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
-    return res.json({ success: true, report: cached.report, cached: true });
+  if (cached) {
+    return res.json({ success: true, report: cached, cached: true });
   }
 
   const match = url.match(/https:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)\/issues\/(\d+)/);
@@ -74,7 +70,7 @@ app.post('/api/scan', async (req, res) => {
     };
 
     const report = await BountyShieldScanner.scan(scanTarget);
-    scanCache.set(cacheKey, { report, timestamp: Date.now() });
+    scanCache.set(cacheKey, report);
 
     return res.json({ success: true, report, cached: false });
 

@@ -7,30 +7,64 @@ export interface DecloakResult {
   cleanedText: string;
   hasHiddenCharacters: boolean;
   detectedObfuscations: string[];
+  extractedHiddenPayloads: string[];
   entropyScore: number;
 }
 
 export class Decloaker {
-  // Zero-width characters & bidirectional override tags often used in prompt injection / honeypot cloaking
+  // Zero-width characters & bidirectional override tags
   private static readonly INVISIBLE_REGEX = /[\u200B-\u200D\uFEFF\u202A-\u202E\u2060-\u206F]/g;
   
   // Base64 detection regex (minimum 24 characters block)
   private static readonly BASE64_PATTERN = /(?:[A-Za-z0-9+/]{4}){6,}(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?/g;
+
+  // HTML Comments pattern: <!-- secret directive -->
+  private static readonly HTML_COMMENT_PATTERN = /<!--([\s\S]*?)-->/g;
+
+  // Markdown Image Alt Text pattern: ![secret directive](https://...)
+  private static readonly IMAGE_ALT_PATTERN = /!\[([^\]]+)\]\(([^)]+)\)/g;
 
   /**
    * Cleans text and reports hidden adversarial vectors
    */
   public static decloak(rawText: string): DecloakResult {
     const detectedObfuscations: string[] = [];
+    const extractedHiddenPayloads: string[] = [];
     let hasHidden = false;
 
-    // 1. Check for Zero-Width / RTL Invisible Characters
+    // 1. Extract hidden HTML comments
+    let commentMatch;
+    while ((commentMatch = this.HTML_COMMENT_PATTERN.exec(rawText)) !== null) {
+      const hiddenContent = commentMatch[1].trim();
+      if (hiddenContent.length > 5) {
+        hasHidden = true;
+        detectedObfuscations.push('Hidden HTML comment block detected (invisible to humans, visible to LLMs)');
+        extractedHiddenPayloads.push(hiddenContent);
+      }
+    }
+
+    // 2. Extract hidden Markdown Image Alt Text
+    let altMatch;
+    while ((altMatch = this.IMAGE_ALT_PATTERN.exec(rawText)) !== null) {
+      const altText = altMatch[1].trim();
+      if (altText.length > 15 && /(@platform|ignore|instruction|prompt|system|secret)/i.test(altText)) {
+        hasHidden = true;
+        detectedObfuscations.push('Adversarial prompt hiding inside Markdown Image Alt text');
+        extractedHiddenPayloads.push(altText);
+      }
+    }
+
+    // 3. Check for Zero-Width / RTL Invisible Characters
     if (this.INVISIBLE_REGEX.test(rawText)) {
       hasHidden = true;
       detectedObfuscations.push('Zero-width / Bidirectional invisible formatting detected');
     }
 
-    const cleanedText = rawText.replace(this.INVISIBLE_REGEX, '');
+    let cleanedText = rawText.replace(this.INVISIBLE_REGEX, '');
+    // Append hidden payloads so downstream prompt trap scanner inspects them too
+    if (extractedHiddenPayloads.length > 0) {
+      cleanedText += '\n\n' + extractedHiddenPayloads.join('\n');
+    }
 
     // 2. Check for Embedded Base64 Payload Blocks
     const b64Matches = cleanedText.match(this.BASE64_PATTERN);
@@ -48,6 +82,7 @@ export class Decloaker {
       cleanedText,
       hasHiddenCharacters: hasHidden,
       detectedObfuscations,
+      extractedHiddenPayloads,
       entropyScore
     };
   }
