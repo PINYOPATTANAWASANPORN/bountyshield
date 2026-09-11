@@ -1,0 +1,36 @@
+{
+  "name": "bountyshield",
+  "version": "1.0.0",
+  "description": "Enterprise-grade Anti-Honeypot, Prompt-Trap & Bounty Scam Defense Engine for Devs and AI Agents",
+  "main": "dist/index.js",
+  "bin": {
+    "bountyshield": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "scan": "ts-node src/index.ts",
+    "test": "ts-node tests/fixtures.test.ts"
+  },
+  "keywords": [
+    "bounty",
+    "security",
+    "anti-scam",
+    "honeypot-detector",
+    "github",
+    "ai-agent-defense",
+    "prompt-injection"
+  ],
+  "author": "BountyShield Core",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
